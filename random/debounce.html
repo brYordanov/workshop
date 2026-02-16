@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <input type="text" id="whatever">
+</body>
+<script>
+    const input = document.querySelector('#whatever')
+    
+    const createDebouncedFunc = (fn, delay) => {
+      let timer, lastReject
+
+      return (...args) => {
+          clearTimeout(timer)
+          if(lastReject) lastReject({canceled: true})
+
+        return new Promise((resolve, reject) => {
+            lastReject = reject           
+            timer = setTimeout(async() => {
+                try {
+                  await fn(...args)
+                } catch(err) {
+                    reject()
+                }
+            }, delay)
+        })
+      }
+    }    
+
+    const reactToInput = (e) => {
+        console.log(e.target.value);        
+    }
+    
+    const debouncedInputReact = createDebouncedFunc(reactToInput, 300)  
+    input.addEventListener('input', debouncedInputReact)
+    
+</script>
+</html>

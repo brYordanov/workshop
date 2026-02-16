@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div style="height: 800vh; background-color: rgba(0, 0, 0, 0.5);">damn</div>
+</body>
+<script>
+    const createThrottleFN = (fn, delay) => {
+        let lastCalled = 0
+        
+        return (...args) => {
+            const now = Date.now()
+            if(now - lastCalled >= delay) {
+                lastCalled = now
+                fn(...args)
+            }
+        }
+    }
+
+    const reactToScroll = (e) => {
+        console.log(document.documentElement.scrollTop);
+        
+    } 
+
+    const throttledReact = createThrottleFN(reactToScroll, 1000)
+    document.addEventListener('scroll', throttledReact)
+</script>
+</html>
