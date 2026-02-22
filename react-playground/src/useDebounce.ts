@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const useDebounce = <T extends (...args: any[]) => any>(
@@ -7,15 +7,12 @@ export const useDebounce = <T extends (...args: any[]) => any>(
 ) => {
   const timerRef = useRef(0);
 
-  const debouncedFn = useCallback(
-    (...args: Parameters<T>) => {
-      clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        fn(...args);
-      }, delay);
-    },
-    [fn, delay]
-  );
+  const debouncedFn = (...args: Parameters<T>) => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
 
   useEffect(() => {
     return () => clearTimeout(timerRef.current);
