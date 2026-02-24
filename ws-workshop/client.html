@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WS Task Board</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 0 20px;
+      }
+      #status {
+        font-size: 13px;
+        color: #888;
+        margin-bottom: 8px;
+      }
+      #online {
+        font-size: 13px;
+        color: #22c55e;
+        margin-bottom: 20px;
+      }
+      input {
+        padding: 8px;
+        width: 70%;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      button {
+        padding: 8px 14px;
+        margin-left: 8px;
+        cursor: pointer;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+      }
+      li.done span {
+        text-decoration: line-through;
+        color: #aaa;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Task Board</h2>
+    <div id="status">Connecting...</div>
+    <div id="online"></div>
+
+    <input id="input" type="text" placeholder="New task..." />
+    <button id="addBtn">Add</button>
+
+    <ul id="taskList"></ul>
+
+    <script>
+      const ws = new WebSocket('ws://localhost:8080');
+
+      let tasks = [];
+
+      ws.onopen = () => {
+        document.getElementById('status').textContent = 'Connected ✓';
+        document.getElementById('status').style.color = '#22c55e';
+      };
+
+      ws.onclose = () => {
+        document.getElementById('status').textContent = 'Disconnected';
+        document.getElementById('status').style.color = '#ef4444';
+      };
+
+      ws.onerror = (err) => {
+        console.error('ws error', err);
+      };
+
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === 'init') {
+          tasks = msg.tasks;
+          renderTasks();
+        }
+
+        if (msg.type === 'presence') {
+          document.getElementById('online').textContent =
+            `${msg.count} user(s) online`;
+        }
+
+        if (msg.type === 'task_added') {
+          tasks.push(msg.task);
+          renderTasks();
+        }
+
+        if (msg.type === 'task_toggled') {
+          const task = tasks.find((t) => t.id === msg.id);
+          if (task) {
+            task.done = msg.done;
+            renderTasks();
+          }
+        }
+      };
+
+      function addTask() {
+        const input = document.getElementById('input');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const task = { id: Date.now(), text, done: false };
+        tasks.push(task);
+        renderTasks();
+        input.value = '';
+
+        ws.send(JSON.stringify({ type: 'add_task', task }));
+      }
+
+      function toggleTask(id) {
+        const task = tasks.find((t) => t.id === id);
+        if (task) task.done = !task.done;
+        renderTasks();
+        ws.send(JSON.stringify({ type: 'toggle_task', id }));
+      }
+
+      function renderTasks() {
+        const list = document.getElementById('taskList');
+        list.innerHTML = tasks
+          .map(
+            (t) => `
+        <li class="${t.done ? 'done' : ''}" onclick="toggleTask(${t.id})">
+          <input type="checkbox" ${t.done ? 'checked' : ''} readonly />
+          <span>${t.text}</span>
+        </li>
+      `
+          )
+          .join('');
+      }
+
+      document.getElementById('addBtn').addEventListener('click', addTask);
+      document.getElementById('input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addTask();
+      });
+    </script>
+  </body>
+</html>
