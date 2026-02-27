@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="text" id="someinput" />
+    <script>
+      const input = document.getElementById('someinput');
+      console.log(input);
+
+      function createBothEdgesThrottle(fn, delay) {
+        let timer = null;
+        let lastArgs = null;
+        let lastThis = null;
+        let lastCallTime = 0;
+
+        function invoke() {
+          lastCallTime = Date.now();
+          fn.apply(lastThis, lastArgs);
+        }
+
+        function throttled(...args) {
+          lastArgs = args;
+          lastThis = this;
+
+          const now = Date.now();
+          const remaining = delay - (now - lastCallTime);
+
+          if (remaining <= 0) {
+            clearTimeout(timer);
+            timer = null;
+            invoke();
+          } else if (!timer) {
+            timer = setTimeout(() => {
+              timer = null;
+              invoke();
+            }, remaining);
+          }
+        }
+
+        throttled.cancel = () => {
+          clearTimeout(timer);
+          timer = null;
+        };
+
+        throttled.flush = () => {
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+            invoke();
+          }
+        };
+      }
+
+      function reactToInput(e) {
+        console.log(e.target.value);
+      }
+      const crazyShit = createBothEdgesThrottle(reactToInput, 1000);
+      input.addEventListener('input', crazyShit);
+    </script>
+  </body>
+</html>

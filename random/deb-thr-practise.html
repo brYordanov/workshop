@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="text" id="whatever" />
+  </body>
+  <script>
+    const input = document.querySelector('#whatever');
+
+    const createDebouncedFunc = (fn, delay) => {
+      let timer;
+
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    };
+
+    const createThrottledFunc = (fn, delay) => {
+      let lastCallTime = 0;
+
+      return (...args) => {
+        const now = Date.now();
+
+        if (now - delay >= lastCallTime) {
+          lastCallTime = now;
+          fn(...args);
+        }
+      };
+    };
+
+    const reactToInput = (e) => {
+      console.log(e.target.value);
+    };
+
+    const logger = (text, other) => {
+      console.log(other);
+    };
+
+    const debouncedInputReact = createThrottledFunc(reactToInput, 1000);
+    const debouncedLogger = createThrottledFunc(
+      () => logger('some', 'other'),
+      1000
+    );
+
+    input.addEventListener('input', debouncedInputReact);
+  </script>
+</html>
