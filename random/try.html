@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="text" id="some" />
+    <script>
+      const input = document.getElementById('some');
+      console.log(input);
+
+      function createThrottledFunction(fn, delay) {
+        let lastCallTIme = 0;
+        let timer = null;
+        let lastArgs = null;
+
+        return (...args) => {
+          lastArgs = args;
+          const now = Date.now();
+          const remaining = delay - (now - lastCallTIme);
+
+          if (remaining <= 0) {
+            clearTimeout(timer);
+            fn(...args);
+            timer = null;
+            lastCallTIme = now;
+          } else if (!timer) {
+            timer = setTimeout(() => {
+              fn(...args);
+              timer = null;
+              lastCallTIme = Date.now();
+            }, remaining);
+          }
+        };
+      }
+
+      function reactToInput(e) {
+        console.log(e.target.value);
+      }
+
+      const throttledReact = createThrottledFunction(reactToInput, 1000);
+      input.addEventListener('input', throttledReact);
+    </script>
+  </body>
+</html>
