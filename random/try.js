@@ -1,51 +1,63 @@
-function deepClone(value, seen = new WeakMap()) {
-  if (value === null || typeof value !== 'object') {
-    return value;
+class EventEmitter {
+  constructor() {
+    this.events = new Map();
   }
 
-  if (seen.has(value)) {
-    return seen.get(value);
-  }
-
-  if (value instanceof Date) {
-    return new Date(value);
-  }
-
-  if (value instanceof RegExp) {
-    return new RegExp(value.source, value.flags);
-  }
-
-  if (value instanceof Map) {
-    const clone = new Map();
-    seen.set(value, clone);
-
-    for (const [k, v] of value) {
-      clone.set(deepClone(k, seen), deepClone(v, seen));
+  on(event, listener) {
+    if (!this.events.has(event)) {
+      this.events.set(event, new Set());
     }
 
-    return clone;
+    this.events.get(event).add(listener);
+
+    return () => this.off(event, listener);
   }
 
-  if (value instanceof Set) {
-    const clone = new Set();
-    seen.set(value, clone);
+  off(event, listener) {
+    const listeners = this.events.get(event);
+    if (!listeners) return;
 
-    for (const v of value) {
-      clone.set(deepClone(v));
+    listeners.delete(listener);
+
+    if (listeners.size === 0) {
+      this.events.delete(event);
     }
-
-    return clone;
   }
 
-  if (Array.isArray(value)) {
-    const clone = [];
+  emit(event, ...args) {
+    const listeners = this.events.get(event);
+    if (!listeners) return;
 
-    seen.set(value, clone);
-
-    for (let i = 0; i < value.length; i++) {
-      clone[i] = deepClone(value[i], seen);
+    for (const listener of [...listeners]) {
+      try {
+        listener(...args);
+      } catch (err) {
+        if (event !== 'error' && this.events.has('error')) {
+          this.emit('error', err);
+        } else {
+          throw err;
+        }
+      }
     }
-
-    return clone;
   }
+
+  once(event, listener) {
+    const wrapper = (...args) => {
+      this.off(event, listener);
+      listener(...args);
+    };
+
+    return this.on(event, wrapper);
+  }
+
+  async asyncEmit(event, ...args) {
+    const listeners = this.events.get(event);
+    if (!listeners) return;
+
+    await Promise.all(
+      [...listeners].map((listener) => Promise.resolve(listener(...args)))
+    );
+  }
+
+  once() {}
 }
