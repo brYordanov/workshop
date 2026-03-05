@@ -11,46 +11,34 @@
       const input = document.getElementById('someinput');
       console.log(input);
 
-      function createBothEdgesThrottle(fn, delay) {
+      function createBothEdgesThrottle(
+        fn,
+        delay,
+        { isLeading = false, isTrailing = true } = {}
+      ) {
+        let lastCallTime = 0;
         let timer = null;
         let lastArgs = null;
-        let lastThis = null;
-        let lastCallTime = 0;
 
-        function invoke() {
-          lastCallTime = Date.now();
-          fn.apply(lastThis, lastArgs);
-        }
-
-        function throttled(...args) {
+        return (...args) => {
           lastArgs = args;
-          lastThis = this;
-
           const now = Date.now();
+
           const remaining = delay - (now - lastCallTime);
 
           if (remaining <= 0) {
             clearTimeout(timer);
             timer = null;
-            invoke();
+            lastCallTime = now;
+            if (isLeading) {
+              fn(...args);
+            }
           } else if (!timer) {
             timer = setTimeout(() => {
+              fn(...lastArgs);
               timer = null;
-              invoke();
+              lastCallTime = Date.now();
             }, remaining);
-          }
-        }
-
-        throttled.cancel = () => {
-          clearTimeout(timer);
-          timer = null;
-        };
-
-        throttled.flush = () => {
-          if (timer) {
-            clearTimeout(timer);
-            timer = null;
-            invoke();
           }
         };
       }
