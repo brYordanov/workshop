@@ -1,26 +1,25 @@
-type EventMap = Record<string, any[]> & {
-  error: unknown;
+type Listener = (...args: any[]) => void;
+type EventMapWithError = Record<string, any[]> & {
+  error: [Error];
 };
 
-export class EventEmitter<Events extends EventMap> {
+class EventEmitter<Events extends EventMapWithError> {
   private events;
-  private maxListeners;
-
-  constructor(maxListeners: number = 20) {
-    this.events = new Map<keyof Events, Set<(...args: any[]) => void>>();
-    this.maxListeners = maxListeners;
+  constructor() {
+    this.events = new Map<keyof Events, Set<Listener>>();
   }
 
-  private invokeListner<K extends keyof Events>(
+  invokeListener<K extends keyof Events>(
     event: K,
-    listner: (...args: Events[K]) => void,
+    listener: (...args: Events[K]) => void,
     args: Events[K]
   ) {
     try {
-      listner(...args);
+      listener(...args);
     } catch (err) {
       if (event !== 'error' && this.events.has('error')) {
         const error = err instanceof Error ? err : new Error(String(err));
+
         this.emit('error', error);
       } else {
         throw err;
@@ -33,13 +32,9 @@ export class EventEmitter<Events extends EventMap> {
       this.events.set(event, new Set());
     }
 
-    const listeners = this.events.get(event);
+    this.events.get(event)!.add(listener);
 
-    if (listeners!.size > this.maxListeners) {
-      console.warn('Possible memory leak');
-    }
-
-    return () => this.off(event, listener);
+    return this.off(event, listener);
   }
 
   off<K extends keyof Events>(
@@ -47,7 +42,6 @@ export class EventEmitter<Events extends EventMap> {
     listener: (...args: Events[K]) => void
   ) {
     const listeners = this.events.get(event);
-
     if (!listeners) return;
 
     listeners.delete(listener);
@@ -62,9 +56,20 @@ export class EventEmitter<Events extends EventMap> {
 
     if (!listeners) return;
 
-    listeners.forEach((listener) => {
-      listener(...args);
-    });
+    for (const listener of listeners) {
+      this.invokeListener(event, listener, args);
+    }
+  }
+
+  async asyncEmit<K extends keyof Events>(event: K, ...args: Events[K]) {
+    const listeners = this.events.get(event);
+    if (!listeners) return;
+
+    await Promise.all(
+      [...listeners].map((listener) =>
+        Promise.resolve(this.invokeListener(event, listener, args))
+      )
+    );
   }
 
   once<K extends keyof Events>(
@@ -73,27 +78,9 @@ export class EventEmitter<Events extends EventMap> {
   ) {
     const wrapper = (...args: Events[K]) => {
       this.off(event, wrapper);
-      listener(...args);
+      this.invokeListener(event, listener, args);
     };
 
     return this.on(event, wrapper);
-  }
-
-  async asyncEmit<K extends keyof Events>(event: K, ...args: Events[K]) {
-    const listeners = this.events.get(event);
-    if (!listeners) return;
-
-    await Promise.all(
-      [...listeners].map((listener) => Promise.resolve(listener(...args)))
-    );
-  }
-
-  listenerCount<K extends keyof Events>(event: K) {
-    return this.events.get(event)?.size ?? 0;
-  }
-
-  removeAllListeners<K extends keyof Events>(event: K) {
-    if (event) return this.events.delete(event);
-    return this.events.clear();
   }
 }

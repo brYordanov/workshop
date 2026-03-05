@@ -1,19 +1,20 @@
-function add(...args) {
-  return args.reduce((acc, curr) => acc + curr, 0);
-}
+const testArr = [1, [2, [3, [4]]], 5];
 
-function curry(fn, arity = fn.length) {
-  return function curried(...args) {
-    if (args.length >= arity) {
-      return fn(...args.slice(0, arity));
+function flattenArray(arr, depth) {
+  const result = [];
+  const stack = arr.map((item) => [item, depth]);
+
+  while (stack.length) {
+    const [next, currDepth] = stack.pop();
+    if (Array.isArray(next) && currDepth > 0) {
+      stack.push(...next.map((item) => [item, currDepth - 1]));
+    } else {
+      result.push(next);
     }
+  }
 
-    return function (...nextArgs) {
-      return curried(...args, ...nextArgs);
-    };
-  };
+  return result.reverse();
 }
 
-const curriedAdd = curry(add, 3);
-const some = curriedAdd(1)(2)(3);
+const some = flattenArray(testArr, 2);
 console.log(some);
