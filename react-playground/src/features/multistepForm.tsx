@@ -87,7 +87,7 @@ function PersonalInfo({
 }: {
   formData: FormData;
   errors: Record<keyof FormData, string | null>;
-  update: (key: keyof FormData, value: unknown) => void;
+  update: <K extends keyof FormData>(key: K, value: FormData[K]) => void;
   handleBlur: (key: keyof FormData) => void;
 }) {
   return (
@@ -119,7 +119,7 @@ function PlanSection({
 }: {
   formData: FormData;
   errors: Record<keyof FormData, string | null>;
-  update: (key: keyof FormData, value: unknown) => void;
+  update: <K extends keyof FormData>(key: K, value: FormData[K]) => void;
   handleBlur: (key: keyof FormData) => void;
 }) {
   return (
@@ -144,7 +144,7 @@ function Payment({
 }: {
   formData: FormData;
   errors: Record<keyof FormData, string | null>;
-  update: (key: keyof FormData, value: unknown) => void;
+  update: <K extends keyof FormData>(key: K, value: FormData[K]) => void;
   handleBlur: (key: keyof FormData) => void;
 }) {
   return (
