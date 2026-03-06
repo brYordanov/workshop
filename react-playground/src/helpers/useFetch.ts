@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const cache = new Map<string, unknown>();
+const TTL = 1000 * 60 * 5;
+const cache = new Map<string, { data: unknown; expires: number }>();
 const inFlight = new Map<string, Promise<unknown>>();
 
 // export function useFetch<T>(url: string) {
@@ -89,26 +90,25 @@ export function useFetchV2<T>(url: string) {
 
   const fetchData = useCallback(
     async (signal: AbortSignal) => {
-      setIsLoading(true);
-      setError(null);
-
       try {
-        if (cache.has(url)) {
-          setData(cache.get(url) as T);
-          return;
+        const cached = cache.get(url);
+        if (cached) {
+          setData(cache.get(url)!.data as T);
+          if (cached.expires > Date.now()) return;
+          else setIsLoading(true);
         }
+        setError(null);
 
-        // Reuse or create a signal-agnostic shared promise
         let promise = inFlight.get(url);
         if (!promise) {
-          promise = fetch(url) // no signal — shared across all consumers
-            .then((res) => {
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              return res.json();
+          promise = fetch(url, { signal })
+            .then((response) => {
+              if (!response.ok) throw new Error('not ok');
+              return response.json();
             })
-            .then((json) => {
-              cache.set(url, json);
-              return json;
+            .then((data) => {
+              cache.set(url, { data, expires: Date.now() + TTL });
+              return data;
             })
             .finally(() => {
               inFlight.delete(url);
@@ -117,17 +117,19 @@ export function useFetchV2<T>(url: string) {
           inFlight.set(url, promise);
         }
 
-        const result = await promise;
+        const abortPromise = new Promise((res, rej) => {
+          signal.addEventListener('abort', () => {
+            rej(new DOMException('Aborted', 'AbortError'));
+          });
+        });
 
-        // Per-component guard: we awaited, but were we cancelled in the meantime?
-        if (signal.aborted) return;
+        const result = Promise.race([promise, abortPromise]);
 
         setData(result as T);
       } catch (err) {
         if (signal.aborted) return;
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
-        // Only update loading state if we're still the active request
         if (!signal.aborted) setIsLoading(false);
       }
     },

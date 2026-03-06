@@ -1,56 +1,75 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useThrottledFn<T extends (...args: any[]) => any>(
-  fn: T,
-  delay: number = 300,
-  options: { isTrailing: boolean; isLeading: boolean } = {
-    isLeading: false,
-    isTrailing: true,
-  }
-) {
-  const { isLeading, isTrailing } = options;
-  const lastCallTimeRef = useRef(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastArgsRef = useRef<Parameters<T> | null>(null);
-  const fnRef = useRef(fn);
+const TTL = 1000 * 60 * 5;
 
-  const throttledFn = useCallback(
-    (...args: Parameters<T>) => {
-      lastArgsRef.current = args;
-      const now = Date.now();
-      const remaining = delay - (now - lastCallTimeRef.current);
+const cache = new Map<string, { data: unknown; expires: number }>();
+const inFlight = new Map<string, Promise<unknown>>();
 
-      if (remaining <= 0) {
-        if (timerRef.current) {
-          clearTimeout(timerRef.current);
+export function useFetch<T>(url: string) {
+  const [data, setData] = useState<T | null>(null);
+  const [isLaoding, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [refetchIndex, setRefetchIndex] = useState(0);
+
+  const fetchData = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const cached = cache.get(url);
+        if (cached) {
+          setData(cache.get(url)!.data as T);
+          if (cached.expires > Date.now()) return;
+          else setIsLoading(true);
+        }
+        setError(null);
+
+        let promise = inFlight.get(url);
+        if (!promise) {
+          promise = fetch(url, { signal })
+            .then((response) => {
+              if (!response.ok) throw new Error('not ok');
+              return response.json();
+            })
+            .then((data) => {
+              cache.set(url, { data, expires: Date.now() + TTL });
+              return data;
+            })
+            .finally(() => {
+              inFlight.delete(url);
+            });
+
+          inFlight.set(url, promise);
         }
 
-        fnRef.current(...args!);
-        lastCallTimeRef.current = now;
-        timerRef.current = null;
-      } else if (!timerRef.current) {
-        timerRef.current = setTimeout(() => {
-          if (lastArgsRef.current) {
-            fnRef.current(...lastArgsRef.current!);
-            lastCallTimeRef.current = Date.now();
-            timerRef.current = null;
-          }
-        }, remaining);
+        const abortPromise = new Promise((res, rej) => {
+          signal.addEventListener('abort', () => {
+            rej(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+
+        const result = Promise.race([promise, abortPromise]);
+
+        setData(result as T);
+      } catch (err) {
+        if (signal.aborted) return;
+        setError(err instanceof Error ? err : new Error(String(err)));
+      } finally {
+        if (!signal.aborted) setIsLoading(false);
       }
     },
-    [delay]
+    [url]
   );
 
-  useEffect(() => {
-    fnRef.current = fn;
-  });
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
+  const refetch = useCallback(() => {
+    setRefetchIndex((prev) => prev + 1);
   }, []);
 
-  return throttledFn;
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchData(controller.signal);
+
+    return () => controller.abort();
+  }, [fetchData, refetchIndex]);
+
+  return { data, isLaoding, error, refetch };
 }
