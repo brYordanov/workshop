@@ -11,28 +11,34 @@
       const input = document.getElementById('some');
       console.log(input);
 
-      function createDebouncedFunc(
+      function createThrottledFunc(
         fn,
         delay,
-        { isTrailing = false, isLeading = true } = {}
+        { isTrailing = true, isLeading = true } = {}
       ) {
+        let lastCallTime = 0;
         let timer = null;
-        let shouldTrail = false;
-
+        let lastArgs = null;
         return (...args) => {
-          if (!timer && isLeading) {
-            fn(...args);
-            shouldTrail = false;
-          } else {
-            shouldTrail = true;
-          }
-          clearTimeout(timer);
-          timer = setTimeout(() => {
-            if (shouldTrail && isTrailing) {
-              fn(...args);
-            }
+          lastArgs = args;
+          const now = Date.now();
+          const remaining = delay - (now - lastCallTime);
+
+          if (remaining <= 0 && isLeading) {
+            clearTimeout(timer);
             timer = null;
-          }, delay);
+            fn(...lastArgs);
+            lastCallTime = now;
+          } else if (!timer && isTrailing) {
+            timer = setTimeout(
+              () => {
+                fn(...lastArgs);
+                lastCallTime = Date.now();
+                timer = null;
+              },
+              remaining <= 0 ? delay : remaining
+            );
+          }
         };
       }
 
@@ -40,7 +46,7 @@
         console.log(e.target.value);
       }
 
-      const throttledReact = createDebouncedFunc(reactToInput, 1000);
+      const throttledReact = createThrottledFunc(reactToInput, 1000);
       input.addEventListener('input', throttledReact);
     </script>
   </body>

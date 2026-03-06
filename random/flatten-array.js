@@ -46,6 +46,6 @@ function flattenIterativeWithDepth(arr, maxDepth = Infinity) {
   return result.reverse();
 }
 
-const testArr = [1, [2, [3]], 4];
+const testArr = [1, [2, [3, [4]]], 5];
 const some = iterativeWithDepth(testArr, 1);
 console.log(some);

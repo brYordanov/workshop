@@ -1,10 +1,11 @@
 import './App.css';
-import { PostFeed } from './postFeed';
+import { MultiStepForm } from './features/multistepForm';
 
 function App() {
   return (
     <>
-      <PostFeed />
+      <MultiStepForm />
+      {/* <PostFeed /> */}
       {/* <div>{debouncedText}</div> */}
       {/* <input type="text" value={text} onChange={handleChange} /> */}
       {/* <BeginChat /> */}

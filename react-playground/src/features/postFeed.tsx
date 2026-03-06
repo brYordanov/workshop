@@ -1,4 +1,4 @@
-import { useInfiniteScroll } from './helpers/useInifiniteScroll';
+import { useInfiniteScroll } from '../helpers/useInifiniteScroll';
 
 type Post = {
   id: number;
