@@ -95,13 +95,13 @@ export function useFetchV2<T>(url: string) {
         if (cached) {
           setData(cache.get(url)!.data as T);
           if (cached.expires > Date.now()) return;
-          else setIsLoading(true);
         }
+        setIsLoading(true);
         setError(null);
 
         let promise = inFlight.get(url);
         if (!promise) {
-          promise = fetch(url, { signal })
+          promise = fetch(url)
             .then((response) => {
               if (!response.ok) throw new Error('not ok');
               return response.json();
@@ -117,13 +117,13 @@ export function useFetchV2<T>(url: string) {
           inFlight.set(url, promise);
         }
 
-        const abortPromise = new Promise((res, rej) => {
+        const abortPromise = new Promise((_, rej) => {
           signal.addEventListener('abort', () => {
             rej(new DOMException('Aborted', 'AbortError'));
           });
         });
 
-        const result = Promise.race([promise, abortPromise]);
+        const result = await Promise.race([promise, abortPromise]);
 
         setData(result as T);
       } catch (err) {
