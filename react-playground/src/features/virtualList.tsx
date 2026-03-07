@@ -1,6 +1,5 @@
 import type React from 'react';
-import { useState } from 'react';
-import { useThrottle } from '../helpers/useThrottle';
+import { useThrottledState } from '../helpers/useThrottle';
 
 type VirtualListProps<T> = {
   items: T[];
@@ -15,11 +14,7 @@ export function VirtualList<T>({
   height,
   itemHeight,
 }: VirtualListProps<T>) {
-  const [scrollTop, setScrollTop] = useState(0);
-  const throttledScroll = useThrottle(
-    (value) => setScrollTop(value as number),
-    16
-  );
+  const [scrollTop, setScrollTop] = useThrottledState(0, 16);
 
   const visibleCount = Math.ceil(height / itemHeight);
   const overscan = 5;
@@ -38,7 +33,7 @@ export function VirtualList<T>({
   return (
     <div
       style={{ height, overflowY: 'auto' }}
-      onScroll={(e) => throttledScroll(e.currentTarget.scrollTop)}
+      onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
     >
       <div style={{ height: totalHeight, position: 'relative' }}>
         <div
