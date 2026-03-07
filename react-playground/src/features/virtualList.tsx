@@ -1,0 +1,55 @@
+import type React from 'react';
+import { useState } from 'react';
+import { useThrottle } from '../helpers/useThrottle';
+
+type VirtualListProps<T> = {
+  items: T[];
+  renderItem: (item: T, index: number) => React.ReactNode;
+  height: number;
+  itemHeight: number;
+};
+
+export function VirtualList<T>({
+  items,
+  renderItem,
+  height,
+  itemHeight,
+}: VirtualListProps<T>) {
+  const [scrollTop, setScrollTop] = useState(0);
+  const throttledScroll = useThrottle(
+    (value) => setScrollTop(value as number),
+    16
+  );
+
+  const visibleCount = Math.ceil(height / itemHeight);
+  const overscan = 5;
+
+  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
+  const endIndex = Math.min(
+    items.length,
+    startIndex + visibleCount + overscan * 2
+  );
+
+  const visibleItems = items.slice(startIndex, endIndex);
+
+  const offsetY = startIndex * itemHeight;
+  const totalHeight = itemHeight * items.length;
+
+  return (
+    <div
+      style={{ height, overflowY: 'auto' }}
+      onScroll={(e) => throttledScroll(e.currentTarget.scrollTop)}
+    >
+      <div style={{ height: totalHeight, position: 'relative' }}>
+        <div
+          style={{
+            transform: `translateY(${offsetY}px)`,
+            willChange: 'transform',
+          }}
+        >
+          {visibleItems.map((item, i) => renderItem(item, startIndex + i))}
+        </div>
+      </div>
+    </div>
+  );
+}

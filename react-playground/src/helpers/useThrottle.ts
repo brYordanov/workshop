@@ -1,17 +1,16 @@
 import { useCallback, useRef } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const useThrottle = <T extends (...args: any[]) => any>(
+export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   fn: T,
   delay: number
 ) => {
-  const lastRef = useRef(0);
+  const lastCallRef = useRef(0);
 
   return useCallback(
     (...args: Parameters<T>) => {
       const now = Date.now();
-      if (now - lastRef.current >= delay) {
-        lastRef.current = now;
+      if (now - lastCallRef.current >= delay) {
+        lastCallRef.current = now;
         fn(...args);
       }
     },

@@ -1,6 +1,6 @@
 import { useInfiniteScroll } from '../helpers/useInifiniteScroll';
 
-type Post = {
+export type Post = {
   id: number;
   name: string;
   description: string;
@@ -31,7 +31,7 @@ export function PostFeed() {
   );
 }
 
-function PostCard({ post }: { post: Post }) {
+export function PostCard({ post }: { post: Post }) {
   return (
     <div>
       <h3>{post.name}</h3>
