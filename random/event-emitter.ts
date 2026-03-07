@@ -1,4 +1,4 @@
-type EventMapWithError = Record<string, any[]> & {
+type EventMapWithError = Record<string, unknown[]> & {
   error: [unknown];
 };
 type Listener = (...args: any[]) => void;
