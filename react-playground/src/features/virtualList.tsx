@@ -3,7 +3,7 @@ import { useThrottledState } from '../helpers/useThrottle';
 
 type VirtualListProps<T> = {
   items: T[];
-  renderItem: (item: T, index: number) => React.ReactNode;
+  renderItem: (item: T) => React.ReactNode;
   height: number;
   itemHeight: number;
 };
@@ -35,14 +35,14 @@ export function VirtualList<T>({
       style={{ height, overflowY: 'auto' }}
       onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
     >
-      <div style={{ height: totalHeight, position: 'relative' }}>
+      <div style={{ height: totalHeight }}>
         <div
           style={{
             transform: `translateY(${offsetY}px)`,
             willChange: 'transform',
           }}
         >
-          {visibleItems.map((item, i) => renderItem(item, startIndex + i))}
+          {visibleItems.map((item) => renderItem(item))}
         </div>
       </div>
     </div>
