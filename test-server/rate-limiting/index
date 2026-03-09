@@ -1,0 +1,19 @@
+            Need burst support?
+                    │
+            YES ─── Token Bucket
+                    │
+                    NO
+                    │
+         Security / strict fairness?
+                    │
+            YES ─── Sliding Log
+                    │
+                    NO
+                    │
+           Very high traffic?
+                    │
+            YES ─── Sliding Counter
+                    │
+                    NO
+                    │
+                Fixed Window
