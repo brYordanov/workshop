@@ -25,7 +25,7 @@ export function useFetch<T>(url: string) {
 
         let promise = inFlight.get(url);
         if (!promise) {
-          promise = fetch(url, { signal })
+          promise = fetch(url)
             .then((response) => {
               if (!response.ok) throw new Error(`HTTP err: ${response.status}`);
               return response.json();
