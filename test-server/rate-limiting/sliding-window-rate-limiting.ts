@@ -2,9 +2,8 @@ interface slidingWindowEntry {
   timestamps: number[];
 }
 
-const store = new Map<string, slidingWindowEntry>();
-
 function slidingWindowRateLimiterV1(
+  store: Map<string, slidingWindowEntry>,
   key: string,
   limit: number,
   windowMs: number
@@ -99,3 +98,66 @@ verrsion 2
         - SaaS APIs
         - edge services
  */
+
+function limiterFactory(limit: number, windowMs: number) {
+  const store = new Map<string, { timestamps: number[] }>();
+
+  const cleanp: NodeJS.Timeout = setInterval(() => {
+    const now = Date.now();
+
+    for (const [k, v] of store) {
+      const hasAlive = v.timestamps.some((ts) => now - ts < windowMs);
+      if (!hasAlive) store.delete(k);
+    }
+  }, windowMs);
+
+  cleanp.unref();
+
+  return (req, res, next) => {
+    const key = req.ip;
+    const isAllowed = slidingWindowRateLimiterV1(store, key, limit, windowMs);
+
+    if (!isAllowed) {
+      return res.status(429).json({ err: 'too bad, soo sad' });
+    }
+
+    next();
+  };
+}
+
+function sliwinfWFancy(
+  store: Map<
+    string,
+    { prevCount: number; currCount: number; windowStart: number }
+  >,
+  key: string,
+  limit: number,
+  windowMs: number
+) {
+  const now = Date.now();
+
+  if (!store.has(key)) {
+    store.set(key, { prevCount: 0, currCount: 0, windowStart: now });
+  }
+
+  const entry = store.get(key)!;
+
+  const elapsed = now - entry.windowStart;
+
+  if (elapsed >= windowMs) {
+    entry.prevCount = entry.currCount;
+    entry.currCount = 0;
+    entry.windowStart = now;
+  }
+
+  const overlap = (windowMs - elapsed) / windowMs;
+  const estimated = entry.prevCount * overlap + entry.currCount;
+
+  if (estimated >= limit) {
+    return false;
+  }
+
+  entry.currCount++;
+
+  return true;
+}

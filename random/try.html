@@ -19,27 +19,43 @@
         let lastCallTime = 0;
         let timer = null;
         let lastArgs = null;
-        return (...args) => {
+
+        const exec = () => {
+          fn(...lastArgs);
+          lastCallTime = Date.now();
+        };
+
+        const throttled = (...args) => {
           lastArgs = args;
           const now = Date.now();
           const remaining = delay - (now - lastCallTime);
 
           if (remaining <= 0 && isLeading) {
-            clearTimeout(timer);
-            timer = null;
-            fn(...lastArgs);
-            lastCallTime = now;
-          } else if (!timer && isTrailing) {
+            exec();
+          } else if (!timer) {
             timer = setTimeout(
               () => {
-                fn(...lastArgs);
-                lastCallTime = Date.now();
+                if (isTrailing) {
+                  exec();
+                }
                 timer = null;
               },
               remaining <= 0 ? delay : remaining
             );
           }
         };
+
+        throttled.cancel = () => {
+          timer = null;
+          clearTimeout(timer);
+        };
+
+        throttled.flush = () => {
+          throttled.cancel();
+          exec();
+        };
+
+        return throttled;
       }
 
       function reactToInput(e) {

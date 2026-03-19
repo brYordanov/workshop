@@ -1,0 +1,10 @@
+<div class="container">
+  @for (item of items$ | async; track item.name) {
+    <app-item [item]="item"></app-item>
+  }
+  <div class="pagination">
+    <button (click)="prevPage()">Prev</button>
+    {{ page$ | async }}
+    <button (click)="nextPage()">Next</button>
+  </div>
+</div>

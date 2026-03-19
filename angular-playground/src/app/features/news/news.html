@@ -1,0 +1,10 @@
+@if (newsDetails$ | async; as news) {
+  <p>{{ news.name }}</p>
+  <div style="display: flex; gap: 10px">
+    <button (click)="handleQuantityChange('decrease')">Decrease</button>
+    <p>quantity: {{ news.quantity }}</p>
+    <button (click)="handleQuantityChange('increase')">Increase</button>
+  </div>
+
+  <button (click)="onClick()">go home witcher</button>
+}
